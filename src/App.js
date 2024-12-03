@@ -1,38 +1,56 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Sidebar from './components/Sidebar';
 import GastosForm from './components/GastosForm';
 import GastosList from './components/GastosList';
-import AdicionarCarne from './components/AdicionarCarne'; // Importando a nova funcionalidade
+import Estoque from './pages/Estoque';
+import AdicionarCarne from './components/AdicionarCarne';
+import Login from './pages/Login';
+import RequireAuth from './components/RequireAuth';
+import LogoutButton from './components/LogoutButton';
 
 const App = () => {
   const [gastos, setGastos] = useState([]);
 
   useEffect(() => {
     const fetchGastos = async () => {
-      const response = await axios.get('http://localhost:3001/api');
-      setGastos(response.data);
+      try {
+        const response = await axios.get('http://localhost:3001/api');
+        setGastos(response.data);
+      } catch (error) {
+        console.error('Erro ao buscar gastos:', error);
+      }
     };
 
     fetchGastos();
   }, []);
 
   const adicionarGasto = async (gasto) => {
-    const response = await axios.post('http://localhost:3001/api', gasto);
-    setGastos([...gastos, response.data]); // Adiciona o gasto retornado pelo backend
+    try {
+      const response = await axios.post('http://localhost:3001/api', gasto);
+      setGastos([...gastos, response.data]);
+    } catch (error) {
+      console.error('Erro ao adicionar gasto:', error);
+    }
   };
 
   const removerGasto = async (id) => {
-    await axios.delete(`http://localhost:3001/api/${id}`);
-    setGastos(gastos.filter((gasto) => gasto.id !== id));
+    try {
+      await axios.delete(`http://localhost:3001/api/${id}`);
+      setGastos(gastos.filter((gasto) => gasto.id !== id));
+    } catch (error) {
+      console.error('Erro ao remover gasto:', error);
+    }
   };
 
   const editarGasto = async (gasto) => {
-    const response = await axios.put(`http://localhost:3001/api/${gasto.id}`, gasto);
-    const updatedGastos = gastos.map((g) => (g.id === gasto.id ? response.data : g));
-    setGastos(updatedGastos);
-    return response.data; // Retorna o gasto atualizado
+    try {
+      const response = await axios.put(`http://localhost:3001/api/${gasto.id}`, gasto);
+      setGastos(gastos.map((g) => (g.id === gasto.id ? response.data : g)));
+    } catch (error) {
+      console.error('Erro ao editar gasto:', error);
+    }
   };
 
   return (
@@ -41,9 +59,58 @@ const App = () => {
         <Sidebar />
         <div className="flex-grow p-4">
           <Routes>
-            <Route path="/" element={<GastosList gastos={gastos} removerGasto={removerGasto} editarGasto={editarGasto} />} />
-            <Route path="/add" element={<GastosForm onSave={adicionarGasto} />} />
-            <Route path="/adicionar-carne" element={<AdicionarCarne />} /> {/* Nova rota */}
+            {/* Rota de Login */}
+            <Route path="/login" element={<Login />} />
+
+            {/* Rotas protegidas */}
+            <Route
+              path="/"
+              element={
+                <RequireAuth>
+                  <div>
+                    <LogoutButton />
+                    <GastosList
+                      gastos={gastos}
+                      removerGasto={removerGasto}
+                      editarGasto={editarGasto}
+                    />
+                  </div>
+                </RequireAuth>
+              }
+            />
+            <Route
+              path="/add"
+              element={
+                <RequireAuth>
+                  <div>
+                    <LogoutButton />
+                    <GastosForm onSave={adicionarGasto} />
+                  </div>
+                </RequireAuth>
+              }
+            />
+            <Route
+              path="/adicionar-carne"
+              element={
+                <RequireAuth>
+                  <div>
+                    <LogoutButton />
+                    <AdicionarCarne />
+                  </div>
+                </RequireAuth>
+              }
+            />
+            <Route
+              path="/estoque"
+              element={
+                <RequireAuth>
+                  <div>
+                    <LogoutButton />
+                    <Estoque />
+                  </div>
+                </RequireAuth>
+              }
+            />
           </Routes>
         </div>
       </div>
